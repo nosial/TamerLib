@@ -1,0 +1,38 @@
+{
+    "project": {
+        "compiler": {
+            "extension": "php",
+            "minimum_version": "8.0",
+            "maximum_version": "8.2"
+        },
+        "update_source": {
+            "source": "nosial/libs.tamer@n64",
+            "repository": {
+                "name": "n64",
+                "type": "gitlab",
+                "host": "git.n64.cc",
+                "ssl": true
+            }
+        },
+        "options": []
+    },
+    "assembly": {
+        "name": "TamerLib",
+        "package": "net.nosial.tamerlib",
+        "description": "Telegram Bot API Library (A super-powered wrapper for longman/telegram-bot)",
+        "company": "Nosial",
+        "copyright": "Copyright (c) 2022-2023 Nosial, All Rights Reserved",
+        "version": "1.0.0",
+        "uuid": "a365e7d6-a1c0-11ed-b7c7-b9654ed9efa5"
+    },
+    "build": {
+        "source_path": "src",
+        "default_configuration": "release",
+        "configurations": [
+            {
+                "name": "release",
+                "output_path": "build/release"
+            }
+        ]
+    }
+}
