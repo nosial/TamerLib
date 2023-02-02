@@ -1,13 +1,18 @@
 <?php
 
+    /** @noinspection PhpMissingFieldTypeInspection */
+
     namespace Tamer\Protocols;
 
     use Exception;
     use GearmanJob;
+    use Opis\Closure\SerializableClosure;
+    use Tamer\Abstracts\JobStatus;
     use Tamer\Exceptions\ServerException;
     use Tamer\Exceptions\WorkerException;
     use Tamer\Interfaces\WorkerProtocolInterface;
     use Tamer\Objects\Job;
+    use Tamer\Objects\JobResults;
 
     class GearmanWorker implements WorkerProtocolInterface
     {
@@ -31,18 +36,12 @@
          */
         private $next_reconnect;
 
-        /**
-         * @var GearmanJob|null
-         */
-        private $current_job;
-
         public function __construct()
         {
             $this->worker = null;
             $this->server_cache = [];
             $this->automatic_reconnect = false;
             $this->next_reconnect = time() + 1800;
-            $this->current_job = null;
 
             try
             {
@@ -120,10 +119,21 @@
         {
             $this->worker->addFunction($function_name, function(GearmanJob $job) use ($function, $context)
             {
-                $this->current_job = $job;
-                $job = new Job($job->unique(), $job->handle(), $job->workload());
-                $function($job, $context);
-                $this->current_job = null;
+                $received_job = Job::fromArray(msgpack_unpack($job->workload()));
+
+                try
+                {
+                    $result = $function($received_job, $context);
+                }
+                catch(Exception $e)
+                {
+                    $job->sendFail();
+                    return;
+                }
+
+                $job_results = new JobResults($received_job, JobStatus::Success, $result);
+                $job->sendComplete(msgpack_pack($job_results->toArray()));
+
             });
             return $this;
         }
@@ -173,6 +183,26 @@
                     $this->addServer($host, $port);
                 }
             }
+
+            $this->worker->addFunction('tamer_closure', function(GearmanJob $job)
+            {
+                $received_job = Job::fromArray(msgpack_unpack($job->workload()));
+
+                try
+                {
+                    /** @var SerializableClosure $closure */
+                    $closure = $received_job->getData();
+                    $result = $closure->getClosure()->__invoke($received_job);
+                }
+                catch(Exception $e)
+                {
+                    $job->sendFail();
+                    return;
+                }
+
+                $job_results = new JobResults($received_job, JobStatus::Success, $result);
+                $job->sendComplete(msgpack_pack($job_results->toArray()));
+            });
         }
 
         /**

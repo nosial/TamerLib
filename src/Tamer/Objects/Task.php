@@ -34,6 +34,11 @@
         private $callback;
 
         /**
+         * @var bool
+         */
+        private $closure;
+
+        /**
          * Public Constructor
          *
          * @param string $function_name
@@ -47,6 +52,7 @@
             $this->id = uniqid();
             $this->priority = TaskPriority::Normal;
             $this->callback = $callback;
+            $this->closure = false;
         }
 
         /**
@@ -146,5 +152,21 @@
             {
                 call_user_func($this->callback, $result);
             }
+        }
+
+        /**
+         * @return bool
+         */
+        public function isClosure(): bool
+        {
+            return $this->closure;
+        }
+
+        /**
+         * @param bool $closure
+         */
+        public function setClosure(bool $closure): void
+        {
+            $this->closure = $closure;
         }
     }

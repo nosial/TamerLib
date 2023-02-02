@@ -1,48 +1,69 @@
 <?php
 
+    /** @noinspection PhpMissingFieldTypeInspection */
+
     namespace Tamer\Objects;
+
+    use Tamer\Abstracts\JobStatus;
 
     class JobResults
     {
         /**
-         * @var Task
-         */
-        private Task $task;
-
-        /**
-         * @var int
-         */
-        private int $status;
-
-        /**
-         * @var string|null
-         */
-        private ?string $result;
-
-        /**
-         * Public Constructor
+         * The ID of the job
          *
-         * @param Task $task
-         * @param int $status
-         * @param string|null $result
+         * @var string
          */
-        public function __construct(Task $task, int $status, ?string $result)
+        private $id;
+
+        /**
+         * The data to be passed to the function
+         *
+         * @var string
+         */
+        private $data;
+
+        /**
+         * The status of the job
+         *
+         * @var int
+         * @see JobStatus
+         */
+        private $status;
+
+        public function __construct(?Job $job=null, ?int $status=null, $results=null)
         {
-            $this->task = $task;
-            $this->status = $status;
-            $this->result = $result;
+            if($job !== null)
+            {
+                $this->id = $job->getId();
+                $this->data = $results;
+                $this->status = $status;
+            }
         }
 
         /**
-         * @return Task
+         * Returns the ID of the Job
+         *
+         * @return string
          */
-        public function getTask(): Task
+        public function getId(): string
         {
-            return $this->task;
+            return $this->id;
+        }
+
+
+        /**
+         * Returns the data of the Job
+         *
+         * @return string
+         */
+        public function getData(): string
+        {
+            return $this->data;
         }
 
         /**
          * @return int
+         * @noinspection PhpUnused
          */
         public function getStatus(): int
         {
@@ -50,10 +71,59 @@
         }
 
         /**
-         * @return string|null
+         * Returns an array representation of the Job
+         *
+         * @return array
          */
-        public function getResult(): ?string
+        public function toArray(): array
         {
-            return $this->result;
+            return [
+                'id' => $this->id,
+                'data' => $this->data,
+                'status' => $this->status
+            ];
         }
+
+        /**
+         * Constructs a Job from an array
+         *
+         * @param array $data
+         * @return JobResults
+         */
+        public static function fromArray(array $data): JobResults
+        {
+            $job = new JobResults();
+
+            $job->setId($data['id']);
+            $job->setData($data['data']);
+            $job->setStatus($data['status']);
+
+            return $job;
+        }
+
+        /**
+         * @param string $id
+         */
+        protected function setId(string $id): void
+        {
+            $this->id = $id;
+        }
+
+        /**
+         * @param string $data
+         */
+        protected function setData(string $data): void
+        {
+            $this->data = $data;
+        }
+
+        /**
+         * @param int|null $status
+         */
+        protected function setStatus(?int $status): void
+        {
+            $this->status = $status;
+        }
+
+
     }

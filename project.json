@@ -40,6 +40,12 @@
                 "version": "latest",
                 "source_type": "remote",
                 "source": "nosial/libs.log=latest@n64"
+            },
+            {
+                "name": "com.opis.closure",
+                "version": "latest",
+                "source_type": "remote",
+                "source": "opis/closure=latest@composer"
             }
         ],
         "configurations": [

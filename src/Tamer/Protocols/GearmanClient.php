@@ -7,10 +7,12 @@
     use Exception;
     use GearmanTask;
     use LogLib\Log;
+    use Opis\Closure\SerializableClosure;
     use Tamer\Abstracts\JobStatus;
     use Tamer\Abstracts\TaskPriority;
     use Tamer\Exceptions\ServerException;
     use Tamer\Interfaces\ClientProtocolInterface;
+    use Tamer\Objects\Job;
     use Tamer\Objects\JobResults;
     use Tamer\Objects\Task;
 
@@ -51,6 +53,7 @@
             $this->tasks = [];
             $this->automatic_reconnect = false;
             $this->next_reconnect = time() + 1800;
+            $this->server_cache = [];
 
             try
             {
@@ -80,6 +83,11 @@
             return $this->client->addOptions($options);
         }
 
+        /**
+         * Registers callbacks for the client
+         *
+         * @return void
+         */
         private function registerCallbacks(): void
         {
             $this->client->setCompleteCallback([$this, 'callbackHandler']);
@@ -135,13 +143,27 @@
         }
 
         /**
+         * Executes a closure in the background
+         *
+         * @param callable $function
+         * @return void
+         * @throws ServerException
+         */
+        public function closure(callable $function): void
+        {
+            $closure_task = new Task('tamer_closure', \Opis\Closure\serialize(new SerializableClosure($function)));
+            $closure_task->setClosure(true);
+            $this->doBackground($closure_task);
+        }
+
+        /**
          * Processes a task in the background
          *
          * @param Task $task
-         * @return bool
+         * @return void
          * @throws ServerException
          */
-        public function doBackground(Task $task): bool
+        public function doBackground(Task $task): void
         {
             if($this->automatic_reconnect && time() > $this->next_reconnect)
             {
@@ -150,29 +172,34 @@
             }
 
             $this->tasks[] = $task;
+            $job = new Job($task);
 
             switch($task->getPriority())
             {
                 case TaskPriority::High:
-                    return $this->client->doHighBackground($task->getFunctionName(), $task->getData(), $task->getId());
+                    $this->client->doHighBackground($task->getFunctionName(),  msgpack_pack($job->toArray()));
+                    break;
 
                 case TaskPriority::Low:
-                    return $this->client->doLowBackground($task->getFunctionName(), $task->getData(), $task->getId());
+                    $this->client->doLowBackground($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    break;
 
                 default:
                 case TaskPriority::Normal:
-                    return $this->client->doBackground($task->getFunctionName(), $task->getData(), $task->getId());
+                    $this->client->doBackground($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    break;
             }
+
         }
 
         /**
-         * Processes a task in the foreground
+         * Adds a task to the list of tasks to run
          *
          * @param Task $task
-         * @return JobResults
+         * @return void
          * @throws ServerException
          */
-        public function do(Task $task): JobResults
+        public function addTask(Task $task): void
         {
             if($this->automatic_reconnect && time() > $this->next_reconnect)
             {
@@ -181,85 +208,45 @@
             }
 
             $this->tasks[] = $task;
+            $job = new Job($task);
 
             switch($task->getPriority())
             {
                 case TaskPriority::High:
-                    return new JobResults($task, JobStatus::Success, $this->client->doHigh($task->getFunctionName(), $task->getData(), $task->getId()));
+                    $this->client->addTaskHigh($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    break;
 
                 case TaskPriority::Low:
-                    return new JobResults($task, JobStatus::Success, $this->client->doLow($task->getFunctionName(), $task->getData(), $task->getId()));
+                    $this->client->addTaskLow($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    break;
 
                 default:
                 case TaskPriority::Normal:
-                    return new JobResults($task, JobStatus::Success, $this->client->doNormal($task->getFunctionName(), $task->getData(), $task->getId()));
+                    $this->client->addTask($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    break;
             }
         }
 
-        public function addTask(Task $task): ClientProtocolInterface
+        /**
+         * Adds a closure task to the list of tasks to run
+         *
+         * @param callable $function
+         * @param $callback
+         * @return void
+         * @throws ServerException
+         */
+        public function addClosureTask(callable $function, $callback): void
         {
-            if($this->automatic_reconnect && time() > $this->next_reconnect)
-            {
-                $this->reconnect();
-                $this->next_reconnect = time() + 1800;
-            }
-
-            $this->tasks[] = $task;
-
-            switch($task->getPriority())
-            {
-                case TaskPriority::High:
-                    $this->client->addTaskHigh($task->getFunctionName(), $task->getData(), $task->getId());
-                    break;
-
-                case TaskPriority::Low:
-                    $this->client->addTaskLow($task->getFunctionName(), $task->getData(), $task->getId());
-                    break;
-
-                default:
-                case TaskPriority::Normal:
-                    $this->client->addTask($task->getFunctionName(), $task->getData(), $task->getId());
-                    break;
-            }
-
-            return $this;
-        }
-
-
-        public function addBackgroundTask(Task $task): ClientProtocolInterface
-        {
-            if($this->automatic_reconnect && time() > $this->next_reconnect)
-            {
-                $this->reconnect();
-                $this->next_reconnect = time() + 1800;
-            }
-
-            $this->tasks[] = $task;
-
-            switch($task->getPriority())
-            {
-                case TaskPriority::High:
-                    $this->client->addTaskHighBackground($task->getFunctionName(), $task->getData(), $task->getId());
-                    break;
-
-                case TaskPriority::Low:
-                    $this->client->addTaskLowBackground($task->getFunctionName(), $task->getData(), $task->getId());
-                    break;
-
-                default:
-                case TaskPriority::Normal:
-                    $this->client->addTaskBackground($task->getFunctionName(), $task->getData(), $task->getId());
-                    break;
-            }
-
-            return $this;
+            $closure_task = new Task('tamer_closure', \Opis\Closure\serialize(new SerializableClosure($function)), $callback);
+            $closure_task->setClosure(true);
+            $this->addTask($closure_task);
         }
 
         /**
          * @return bool
          * @throws ServerException
          */
-        public function doTasks(): bool
+        public function run(): bool
         {
             if($this->automatic_reconnect && time() > $this->next_reconnect)
             {
@@ -283,7 +270,8 @@
          */
         public function callbackHandler(GearmanTask $task): void
         {
-            $internal_task = $this->getTaskById($task->unique());
+            $job_result = JobResults::fromArray(msgpack_unpack($task->data()));
+            $internal_task = $this->getTaskById($job_result->getId());
             $job_status = match ($task->returnCode())
             {
                 GEARMAN_WORK_EXCEPTION => JobStatus::Exception,
@@ -291,12 +279,10 @@
                 default => JobStatus::Success,
             };
 
-            $job_results = new JobResults($internal_task, $job_status, ($task->data() ?? null));
-
             try
             {
                 Log::debug('net.nosial.tamer', 'callback for task ' . $internal_task->getId() . ' with status ' . $job_status . ' and data size ' . strlen($task->data()) . ' bytes');
-                $internal_task->runCallback($job_results);
+                $internal_task->runCallback($job_result);
             }
             catch(Exception $e)
             {
@@ -314,8 +300,6 @@
          */
         private function getTaskById(string $id): ?Task
         {
-            var_dump($this->tasks);
-            var_dump($id);
             foreach($this->tasks as $task)
             {
                 if($task->getId() === $id)
@@ -349,16 +333,15 @@
          * Removes a task from the list of tasks
          *
          * @param Task $task
-         * @return ClientProtocolInterface
+         * @return void
          */
-        private function removeTask(Task $task): ClientProtocolInterface
+        private function removeTask(Task $task): void
         {
             $this->tasks = array_filter($this->tasks, function($item) use ($task)
             {
                 return $item->getId() !== $task->getId();
             });
 
-            return $this;
         }
 
         /**
@@ -375,5 +358,22 @@
         public function setAutomaticReconnect(bool $automatic_reconnect): void
         {
             $this->automatic_reconnect = $automatic_reconnect;
+        }
+
+        /**
+         * Executes all remaining tasks and closes the connection
+         */
+        public function __destruct()
+        {
+            try
+            {
+                $this->client->runTasks();
+            }
+            catch(Exception $e)
+            {
+                unset($e);
+            }
+
+            unset($this->client);
         }
     }
