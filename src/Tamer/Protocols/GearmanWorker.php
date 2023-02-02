@@ -192,11 +192,12 @@
                 {
                     /** @var SerializableClosure $closure */
                     $closure = $received_job->getData();
-                    $result = $closure->getClosure()->__invoke($received_job);
+                    $result = $closure($received_job);
                 }
                 catch(Exception $e)
                 {
                     $job->sendFail();
+                    unset($e);
                     return;
                 }
 

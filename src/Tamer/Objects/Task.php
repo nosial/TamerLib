@@ -2,6 +2,7 @@
 
     namespace Tamer\Objects;
 
+    use Closure;
     use InvalidArgumentException;
     use Tamer\Abstracts\TaskPriority;
     use Tamer\Classes\Validate;
@@ -11,7 +12,7 @@
         /**
          * @var string
          */
-        private string $id;
+        private $id;
 
         /**
          * @var string
@@ -19,9 +20,9 @@
         private string $function_name;
 
         /**
-         * @var string
+         * @var string|Closure|null
          */
-        private string $data;
+        private string|null|Closure $data;
 
         /**
          * @var int
@@ -42,10 +43,10 @@
          * Public Constructor
          *
          * @param string $function_name
-         * @param string $data
+         * @param string|Closure|null $data
          * @param callable|null $callback
          */
-        public function __construct(string $function_name, string $data, callable $callback=null)
+        public function __construct(string $function_name, string|Closure|null $data, callable $callback=null)
         {
             $this->function_name = $function_name;
             $this->data = $data;
@@ -80,9 +81,9 @@
         /**
          * Returns the arguments for the task
          *
-         * @return string
+         * @return string|Closure|null
          */
-        public function getData(): string
+        public function getData(): string|null|Closure
         {
             return $this->data;
         }

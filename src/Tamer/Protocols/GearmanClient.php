@@ -4,10 +4,10 @@
 
     namespace Tamer\Protocols;
 
+    use Closure;
     use Exception;
     use GearmanTask;
     use LogLib\Log;
-    use Opis\Closure\SerializableClosure;
     use Tamer\Abstracts\JobStatus;
     use Tamer\Abstracts\TaskPriority;
     use Tamer\Exceptions\ServerException;
@@ -145,13 +145,13 @@
         /**
          * Executes a closure in the background
          *
-         * @param callable $function
+         * @param Closure $function
          * @return void
          * @throws ServerException
          */
-        public function closure(callable $function): void
+        public function closure(Closure $function): void
         {
-            $closure_task = new Task('tamer_closure', \Opis\Closure\serialize(new SerializableClosure($function)));
+            $closure_task = new Task('tamer_closure', $function);
             $closure_task->setClosure(true);
             $this->doBackground($closure_task);
         }
@@ -230,14 +230,14 @@
         /**
          * Adds a closure task to the list of tasks to run
          *
-         * @param callable $function
+         * @param Closure $function
          * @param $callback
          * @return void
          * @throws ServerException
          */
-        public function addClosureTask(callable $function, $callback): void
+        public function addClosureTask(Closure $function, $callback): void
         {
-            $closure_task = new Task('tamer_closure', \Opis\Closure\serialize(new SerializableClosure($function)), $callback);
+            $closure_task = new Task('tamer_closure', $function, $callback);
             $closure_task->setClosure(true);
             $this->addTask($closure_task);
         }

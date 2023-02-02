@@ -4,6 +4,10 @@
 
     namespace Tamer\Objects;
 
+    use Closure;
+    use Opis\Closure\SerializableClosure;
+    use function unserialize;
+
     class Job
     {
         /**
@@ -23,7 +27,7 @@
         /**
          * The data to be passed to the function
          *
-         * @var string
+         * @var string|Closure|null
          */
         private $data;
 
@@ -65,9 +69,9 @@
         /**
          * Returns the data of the Job
          *
-         * @return string
+         * @return string|Closure|null
          */
-        public function getData(): string
+        public function getData(): Closure|string|null
         {
             return $this->data;
         }
@@ -90,7 +94,7 @@
             return [
                 'id' => $this->id,
                 'name' => $this->name,
-                'data' => ($this->closure ? \Opis\Closure\serialize($this->data) : $this->data),
+                'data' => ($this->closure ? serialize(new SerializableClosure($this->data)) : $this->data),
                 'closure' => $this->closure
             ];
         }
@@ -103,12 +107,16 @@
          */
         public static function fromArray(array $data): Job
         {
-            $data = $data['data'];
+            $job_data = $data['data'];
 
             if($data['closure'] === true)
-                $data = \Opis\Closure\unserialize($data['data']);
+            {
+                /** @var SerializableClosure $job_data */
+                $job_data = unserialize($data['data']);
+                $job_data = $job_data->getClosure();
+            }
 
-            $job = new Job(new Task($data['name'], $data['data']));
+            $job = new Job(new Task($data['name'], $job_data));
             $job->id = $data['id'];
             $job->closure = $data['closure'];
 
