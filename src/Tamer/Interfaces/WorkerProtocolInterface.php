@@ -2,6 +2,8 @@
 
     namespace Tamer\Interfaces;
 
+    use Tamer\Exceptions\ConnectionException;
+
     interface WorkerProtocolInterface
     {
         /**
@@ -17,9 +19,9 @@
          *
          * @param string $host The host to connect to (eg; 127.0.0.1)
          * @param int $port The port to connect to (eg; 4730)
-         * @return bool
+         * @return void
          */
-        public function addServer(string $host, int $port): bool;
+        public function addServer(string $host, int $port): void;
 
         /**
          * Adds a list of servers to the list of servers to use
@@ -30,37 +32,80 @@
         public function addServers(array $servers): void;
 
         /**
-         * Adds options to the worker (worker specific)
+         * Connects to all the configured servers
          *
-         * @param array $options
+         * @throws ConnectionException
+         * @return void
+         */
+        public function connect(): void;
+
+        /**
+         * Disconnects from all the configured servers
+         *
+         * @return void
+         */
+        public function disconnect(): void;
+
+        /**
+         * Reconnects to all the configured servers
+         *
+         * @throws ConnectionException
+         * @return void
+         */
+        public function reconnect(): void;
+
+        /**
+         * Returns True if the client is connected to the server (or servers)
+         *
          * @return bool
          */
-        public function addOptions(array $options): bool;
+        public function isConnected(): bool;
+
+        /**
+         * Sets options to the worker (worker specific)
+         *
+         * @param array $options
+         * @return void
+         */
+        public function setOptions(array $options): void;
+
+        /**
+         * Returns the options set on the worker
+         *
+         * @return array
+         */
+        public function getOptions(): array;
+
+        /**
+         * Clears all options from the worker
+         *
+         * @return void
+         */
+        public function clearOptions(): void;
 
         /**
          * Returns True if the worker is set to automatically reconnect to the server after a period of time
          *
          * @return bool
          */
-        public function isAutomaticReconnect(): bool;
+        public function automaticReconnectionEnabled(): bool;
 
         /**
          * Enables or disables automatic reconnecting to the server after a period of time
          *
-         * @param bool $automatic_reconnect
+         * @param bool $enable
          * @return void
          */
-        public function setAutomaticReconnect(bool $automatic_reconnect): void;
+        public function enableAutomaticReconnection(bool $enable): void;
 
         /**
          * Registers a function to the worker
          *
-         * @param string $function_name The name of the function to add
-         * @param callable $function The function to add
-         * @param mixed $context (optional) The context to pass to the function
+         * @param string $name The name of the function to add
+         * @param callable $callable The function to add
          * @return void
          */
-        public function addFunction(string $function_name, callable $function, mixed $context=null): void;
+        public function addFunction(string $name, callable $callable): void;
 
         /**
          * Removes a function from the worker

@@ -19,7 +19,7 @@
     "assembly": {
         "name": "TamerLib",
         "package": "net.nosial.tamerlib",
-        "description": "Telegram Bot API Library (A super-powered wrapper for longman/telegram-bot)",
+        "description": "TamerLib allows the execution of parallel tasks",
         "company": "Nosial",
         "copyright": "Copyright (c) 2022-2023 Nosial, All Rights Reserved",
         "version": "1.0.0",

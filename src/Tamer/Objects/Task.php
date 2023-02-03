@@ -1,5 +1,7 @@
 <?php
 
+    /** @noinspection PhpMissingFieldTypeInspection */
+
     namespace Tamer\Objects;
 
     use Closure;
@@ -17,20 +19,20 @@
         /**
          * @var string
          */
-        private string $function_name;
+        private $function_name;
 
         /**
          * @var string|Closure|null
          */
-        private string|null|Closure $data;
+        private $data;
 
         /**
          * @var int
          */
-        private int $priority;
+        private $priority;
 
         /**
-         * @var callable|null
+         * @var Closure|null
          */
         private $callback;
 
@@ -44,9 +46,9 @@
          *
          * @param string $function_name
          * @param string|Closure|null $data
-         * @param callable|null $callback
+         * @param Closure|null $callback
          */
-        public function __construct(string $function_name, string|Closure|null $data, callable $callback=null)
+        public function __construct(string $function_name, string|Closure|null $data, Closure $callback=null)
         {
             $this->function_name = $function_name;
             $this->data = $data;
@@ -54,6 +56,19 @@
             $this->priority = TaskPriority::Normal;
             $this->callback = $callback;
             $this->closure = false;
+        }
+
+        /**
+         * Static Constructor
+         *
+         * @param string $function_name
+         * @param string|Closure|null $data
+         * @param callable|null $callback
+         * @return static
+         */
+        public static function create(string $function_name, string|Closure|null $data, callable $callback=null): self
+        {
+            return new self($function_name, $data, $callback);
         }
 
         /**
@@ -134,20 +149,22 @@
         }
 
         /**
-         * @param callable|null $callback
+         * @param Closure|null $callback
+         * @return Task
          */
-        public function setCallback(?callable $callback): void
+        public function setCallback(?Closure $callback): self
         {
             $this->callback = $callback;
+            return $this;
         }
 
         /**
          * Executes the callback function
          *
-         * @param JobResults $result
+         * @param string|JobResults|null $result
          * @return void
          */
-        public function runCallback(JobResults $result): void
+        public function runCallback(string|JobResults|null $result): void
         {
             if($this->callback !== null)
             {
@@ -165,9 +182,11 @@
 
         /**
          * @param bool $closure
+         * @return Task
          */
-        public function setClosure(bool $closure): void
+        public function setClosure(bool $closure): self
         {
             $this->closure = $closure;
+            return $this;
         }
     }

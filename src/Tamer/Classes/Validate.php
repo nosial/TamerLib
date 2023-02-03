@@ -2,6 +2,7 @@
 
     namespace Tamer\Classes;
 
+    use Tamer\Abstracts\Mode;
     use Tamer\Abstracts\ProtocolType;
     use Tamer\Abstracts\TaskPriority;
 
@@ -17,7 +18,20 @@
         {
             return match (strtolower($input))
             {
-                ProtocolType::Gearman, ProtocolType::RabbitMQ, ProtocolType::Redis => true,
+                ProtocolType::Gearman, ProtocolType::RabbitMQ => true,
+                default => false,
+            };
+        }
+
+        /**
+         * @param string $input
+         * @return bool
+         */
+        public static function mode(string $input): bool
+        {
+            return match (strtolower($input))
+            {
+                Mode::Client, Mode::Worker => true,
                 default => false,
             };
         }

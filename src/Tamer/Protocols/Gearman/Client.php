@@ -6,11 +6,12 @@
 
     use Closure;
     use Exception;
+    use GearmanClient;
     use GearmanTask;
     use LogLib\Log;
-    use Tamer\Abstracts\JobStatus;
+    use ncc\Utilities\Console;
     use Tamer\Abstracts\TaskPriority;
-    use Tamer\Exceptions\ServerException;
+    use Tamer\Exceptions\ConnectionException;
     use Tamer\Interfaces\ClientProtocolInterface;
     use Tamer\Objects\Job;
     use Tamer\Objects\JobResults;
@@ -19,14 +20,18 @@
     class Client implements ClientProtocolInterface
     {
         /**
-         * @var \GearmanClient|null $client
+         * The Gearman Client object
+         *
+         * @var GearmanClient|null $client
          */
         private $client;
 
         /**
+         * An array of servers that have been defined
+         *
          * @var array
          */
-        private $server_cache;
+        private $defined_servers;
 
         /**
          * Used for tracking the current execution of tasks and run callbacks on completion
@@ -36,14 +41,26 @@
         private $tasks;
 
         /**
+         * Indicates if the client should automatically reconnect to the server if the connection is lost
+         * (default: true)
+         *
          * @var bool
          */
         private $automatic_reconnect;
 
         /**
+         * The Unix timestamp of the next time the client should attempt to reconnect to the server
+         *
          * @var int
          */
         private $next_reconnect;
+
+        /**
+         * The options to use when connecting to the server
+         *
+         * @var array
+         */
+        private $options;
 
         /**
          * @inheritDoc
@@ -56,47 +73,8 @@
             $this->tasks = [];
             $this->automatic_reconnect = false;
             $this->next_reconnect = time() + 1800;
-            $this->server_cache = [];
-
-            try
-            {
-                $this->reconnect();
-            }
-            catch(ServerException $e)
-            {
-                unset($e);
-            }
-        }
-
-        /**
-         * Adds client options
-         *
-         * @link http://php.net/manual/en/gearmanclient.addoptions.php
-         * @param int[] $options (GEARMAN_CLIENT_NON_BLOCKING, GEARMAN_CLIENT_UNBUFFERED_RESULT, GEARMAN_CLIENT_FREE_TASKS)
-         * @return bool
-         */
-        public function addOptions(array $options): bool
-        {
-            // Parse $options combination via bitwise OR operator
-            $options = array_reduce($options, function($carry, $item)
-            {
-                return $carry | $item;
-            });
-
-            return $this->client->addOptions($options);
-        }
-
-        /**
-         * Registers callbacks for the client
-         *
-         * @return void
-         */
-        private function registerCallbacks(): void
-        {
-            $this->client->setCompleteCallback([$this, 'callbackHandler']);
-            $this->client->setFailCallback([$this, 'callbackHandler']);
-            $this->client->setDataCallback([$this, 'callbackHandler']);
-            $this->client->setStatusCallback([$this, 'callbackHandler']);
+            $this->defined_servers = [];
+            $this->options = [];
         }
 
 
@@ -106,31 +84,21 @@
          * @link http://php.net/manual/en/gearmanclient.addserver.php
          * @param string $host (127.0.0.1)
          * @param int $port (default: 4730)
-         * @return bool
-         * @throws ServerException
+         * @return void
          */
-        public function addServer(string $host='127.0.0.1', int $port=4730): bool
+        public function addServer(string $host, int $port): void
         {
-            if(!isset($this->server_cache[$host]))
+            if(!isset($this->defined_servers[$host]))
             {
-                $this->server_cache[$host] = [];
+                $this->defined_servers[$host] = [];
             }
 
-            if(in_array($port, $this->server_cache[$host]))
+            if(in_array($port, $this->defined_servers[$host]))
             {
-                return true;
+                return;
             }
 
-            $this->server_cache[$host][] = $port;
-
-            try
-            {
-                return $this->client->addServer($host, $port);
-            }
-            catch(Exception $e)
-            {
-                throw new ServerException($e->getMessage(), $e->getCode(), $e);
-            }
+            $this->defined_servers[$host][] = $port;
         }
 
         /**
@@ -138,11 +106,160 @@
          *
          * @link http://php.net/manual/en/gearmanclient.addservers.php
          * @param array $servers (host:port, host:port, ...)
+         * @return void
+         */
+        public function addServers(array $servers): void
+        {
+            foreach($servers as $server)
+            {
+                $server = explode(':', $server);
+                $this->addServer($server[0], $server[1]);
+            }
+        }
+
+        /**
+         * Connects to the server(s)
+         *
+         * @return void
+         * @throws ConnectionException
+         */
+        public function connect(): void
+        {
+            if($this->isConnected())
+                return;
+
+            $this->client = new GearmanClient();
+            
+            // Parse $options combination via bitwise OR operator
+            $options = array_reduce($this->options, function($carry, $item)
+            {
+                return $carry | $item;
+            });
+            
+            $this->client->addOptions($options);
+
+            foreach($this->defined_servers as $host => $ports)
+            {
+                foreach($ports as $port)
+                {
+                    try
+                    {
+                        $this->client->addServer($host, $port);
+                        Log::debug('net.nosial.tamerlib', 'connected to gearman server: ' . $host . ':' . $port);
+                    }
+                    catch(Exception $e)
+                    {
+                        throw new ConnectionException('Failed to connect to Gearman server: ' . $host . ':' . $port, 0, $e);
+                    }
+                }
+            }
+
+            $this->client->setCompleteCallback([$this, 'callbackHandler']);
+            $this->client->setFailCallback([$this, 'callbackHandler']);
+            $this->client->setDataCallback([$this, 'callbackHandler']);
+            $this->client->setStatusCallback([$this, 'callbackHandler']);
+        }
+
+        /**
+         * Disconnects from the server(s)
+         *
+         * @return void
+         */
+        public function disconnect(): void
+        {
+            if(!$this->isConnected())
+                return;
+
+            Log::debug('net.nosial.tamerlib', 'disconnecting from gearman server(s)');
+            $this->client->clearCallbacks();
+            unset($this->client);
+            $this->client = null;
+        }
+
+        /**
+         * Reconnects to the server(s)
+         *
+         * @return void
+         * @throws ConnectionException
+         */
+        public function reconnect(): void
+        {
+            Console::outDebug('net.nosial.tamerlib', 'reconnecting to gearman server(s)');
+
+            $this->disconnect();
+            $this->connect();
+        }
+
+        /**
+         * Returns the current status of the client
+         *
+         * @inheritDoc
          * @return bool
          */
-        public function addServers(array $servers): bool
+        public function isConnected(): bool
         {
-            return $this->client->addServers(implode(',', $servers));
+            if($this->client === null)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * The automatic reconnect process
+         *
+         * @return void
+         */
+        private function preformAutoreconf(): void
+        {
+            if($this->automatic_reconnect && $this->next_reconnect < time())
+            {
+                try
+                {
+                    $this->reconnect();
+                }
+                catch (Exception $e)
+                {
+                    Log::error('net.nosial.tamerlib', 'Failed to reconnect to Gearman server: ' . $e->getMessage());
+                }
+                finally
+                {
+                    $this->next_reconnect = time() + 1800;
+                }
+            }
+        }
+
+        /**
+         * Adds client options
+         *
+         * @link http://php.net/manual/en/gearmanclient.addoptions.php
+         * @param int[] $options (GEARMAN_CLIENT_NON_BLOCKING, GEARMAN_CLIENT_UNBUFFERED_RESULT, GEARMAN_CLIENT_FREE_TASKS)
+         * @return void
+         */
+        public function setOptions(array $options): void
+        {
+            $this->options = $options;
+        }
+
+        /**
+         * Returns the current client options
+         * 
+         * @return array
+         */
+        public function getOptions(): array
+        {
+            return $this->options;
+        }
+
+        /**
+         * Clears the current client options
+         * 
+         * @return void
+         */
+        public function clearOptions(): void
+        {
+            $this->options = [];
         }
 
         /**
@@ -150,7 +267,6 @@
          *
          * @param Closure $closure
          * @return void
-         * @throws ServerException
          */
         public function doClosure(Closure $closure): void
         {
@@ -164,15 +280,10 @@
          *
          * @param Task $task
          * @return void
-         * @throws ServerException
          */
         public function do(Task $task): void
         {
-            if($this->automatic_reconnect && time() > $this->next_reconnect)
-            {
-                $this->reconnect();
-                $this->next_reconnect = time() + 1800;
-            }
+            $this->preformAutoreconf();
 
             $this->tasks[] = $task;
             $job = new Job($task);
@@ -192,7 +303,6 @@
                     $this->client->doBackground($task->getFunctionName(), msgpack_pack($job->toArray()));
                     break;
             }
-
         }
 
         /**
@@ -200,15 +310,10 @@
          *
          * @param Task $task
          * @return void
-         * @throws ServerException
          */
         public function queue(Task $task): void
         {
-            if($this->automatic_reconnect && time() > $this->next_reconnect)
-            {
-                $this->reconnect();
-                $this->next_reconnect = time() + 1800;
-            }
+            $this->preformAutoreconf();
 
             $this->tasks[] = $task;
             $job = new Job($task);
@@ -234,11 +339,10 @@
          * Adds a closure task to the list of tasks to run
          *
          * @param Closure $closure
-         * @param $callback
+         * @param Closure|null $callback
          * @return void
-         * @throws ServerException
          */
-        public function queueClosure(Closure $closure, $callback): void
+        public function queueClosure(Closure $closure, ?Closure $callback=null): void
         {
             $closure_task = new Task('tamer_closure', $closure, $callback);
             $closure_task->setClosure(true);
@@ -247,15 +351,13 @@
 
         /**
          * @return bool
-         * @throws ServerException
          */
         public function run(): bool
         {
-            if($this->automatic_reconnect && time() > $this->next_reconnect)
-            {
-                $this->reconnect();
-                $this->next_reconnect = time() + 1800;
-            }
+            if(!$this->isConnected())
+                return false;
+
+            $this->preformAutoreconf();
 
             if(!$this->client->runTasks())
             {
@@ -275,21 +377,24 @@
         {
             $job_result = JobResults::fromArray(msgpack_unpack($task->data()));
             $internal_task = $this->getTaskById($job_result->getId());
-            $job_status = match ($task->returnCode())
-            {
-                GEARMAN_WORK_EXCEPTION => JobStatus::Exception,
-                GEARMAN_WORK_FAIL => JobStatus::Failure,
-                default => JobStatus::Success,
-            };
+
+            Log::debug('net.nosial.tamerlib', 'callback for task ' . $internal_task->getId() . ' with status ' . $job_result->getStatus() . ' and data size ' . strlen($task->data()) . ' bytes');
 
             try
             {
-                Log::debug('net.nosial.tamer', 'callback for task ' . $internal_task->getId() . ' with status ' . $job_status . ' and data size ' . strlen($task->data()) . ' bytes');
+                if($internal_task->isClosure())
+                {
+                    // If the task is a closure, we need to run the callback with the closure's return value
+                    // instead of the job result object
+                    $internal_task->runCallback($job_result->getData());
+                    return;
+                }
+
                 $internal_task->runCallback($job_result);
             }
             catch(Exception $e)
             {
-                Log::error('net.nosial.tamer', 'Callback for task ' . $internal_task->getId() . ' failed with error: ' . $e->getMessage(), $e);
+                Log::error('net.nosial.tamerlib', 'Failed to run callback for task ' . $internal_task->getId() . ': ' . $e->getMessage(), $e);
             }
             finally
             {
@@ -315,24 +420,6 @@
         }
 
         /**
-         * @throws ServerException
-         */
-        private function reconnect()
-        {
-            $this->client = new \GearmanClient();
-
-            foreach($this->server_cache as $host => $ports)
-            {
-                foreach($ports as $port)
-                {
-                    $this->addServer($host, $port);
-                }
-            }
-
-            $this->registerCallbacks();
-        }
-
-        /**
          * Removes a task from the list of tasks
          *
          * @param Task $task
@@ -350,17 +437,17 @@
         /**
          * @return bool
          */
-        public function isAutomaticReconnect(): bool
+        public function automaticReconnectionEnabled(): bool
         {
             return $this->automatic_reconnect;
         }
 
         /**
-         * @param bool $automatic_reconnect
+         * @param bool $enable
          */
-        public function setAutomaticReconnect(bool $automatic_reconnect): void
+        public function enableAutomaticReconnection(bool $enable): void
         {
-            $this->automatic_reconnect = $automatic_reconnect;
+            $this->automatic_reconnect = $enable;
         }
 
         /**
@@ -370,13 +457,15 @@
         {
             try
             {
-                $this->client->runTasks();
+                $this->run();
             }
             catch(Exception $e)
             {
                 unset($e);
             }
-
-            unset($this->client);
+            finally
+            {
+                $this->disconnect();
+            }
         }
     }

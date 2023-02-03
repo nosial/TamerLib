@@ -1,6 +1,6 @@
 <?php
 
-
+    use Tamer\Abstracts\TaskPriority;
     use Tamer\Objects\Task;
 
     require 'ncc';
@@ -14,5 +14,7 @@
 
     for($i = 0; $i < 500; $i++)
     {
-        $client->do(new Task('sleep', '5'));
+        $client->do(Task::create('sleep', '5')
+            ->setPriority(TaskPriority::High)
+        );
     }

@@ -90,7 +90,7 @@
             }
         }
 
-        public function addOptions(array $options): bool
+        public function setOptions(array $options): bool
         {
             $this->options = $options;
             return true;
@@ -294,7 +294,7 @@
          *
          * @return bool
          */
-        public function isAutomaticReconnect(): bool
+        public function automaticReconnectionEnabled(): bool
         {
             return $this->automatic_reconnect;
         }
@@ -302,12 +302,12 @@
         /**
          * Enables or disables automatic reconnecting to the server
          *
-         * @param bool $automatic_reconnect
+         * @param bool $enable
          * @return void
          */
-        public function setAutomaticReconnect(bool $automatic_reconnect): void
+        public function enableAutomaticReconnection(bool $enable): void
         {
-            $this->automatic_reconnect = $automatic_reconnect;
+            $this->automatic_reconnect = $enable;
         }
 
         private function reconnect()

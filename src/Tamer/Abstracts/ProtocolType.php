@@ -7,6 +7,4 @@
         const Gearman = 'gearman';
 
         const RabbitMQ = 'rabbitmq';
-
-        const Redis = 'redis';
     }

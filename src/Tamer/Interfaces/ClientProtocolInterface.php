@@ -3,6 +3,7 @@
     namespace Tamer\Interfaces;
 
     use Closure;
+    use Tamer\Exceptions\ConnectionException;
     use Tamer\Objects\Task;
 
     interface ClientProtocolInterface
@@ -20,40 +21,84 @@
          *
          * @param string $host The host to connect to (eg; 127.0.0.1)
          * @param int $port The port to connect to (eg; 4730)
-         * @return bool
+         * @return void
          */
-        public function addServer(string $host, int $port): bool;
+        public function addServer(string $host, int $port): void;
 
         /**
          * Adds a list of servers to the list of servers to use
          *
          * @param array $servers An array of servers to connect to (eg; ['host:port', 'host:port', ...])
-         * @return bool
+         * @return void
          */
-        public function addServers(array $servers): bool;
+        public function addServers(array $servers): void;
 
         /**
-         * Adds options to the client (client specific)
+         * Connects to all the configured servers
          *
-         * @param array $options
+         * @throws ConnectionException
+         * @return void
+         */
+        public function connect(): void;
+
+        /**
+         * Disconnects from all the configured servers
+         *
+         * @return void
+         */
+        public function disconnect(): void;
+
+        /**
+         * Reconnects to all the configured servers
+         *
+         * @throws ConnectionException
+         * @return void
+         */
+        public function reconnect(): void;
+
+        /**
+         * Returns True if the client is connected to the server (or servers)
+         *
          * @return bool
          */
-        public function addOptions(array $options): bool;
+        public function isConnected(): bool;
+
+        /**
+         * Sets options to the client (client specific)
+         *
+         * @param array $options
+         * @return void
+         */
+        public function setOptions(array $options): void;
+
+        /**
+         * Returns the options set on the client
+         *
+         * @return array
+         */
+        public function getOptions(): array;
+
+        /**
+         * Clears all options from the client
+         *
+         * @return void
+         */
+        public function clearOptions(): void;
 
         /**
          * Returns True if the client is set to automatically reconnect to the server after a period of time
          *
          * @return bool
          */
-        public function isAutomaticReconnect(): bool;
+        public function automaticReconnectionEnabled(): bool;
 
         /**
          * Enables or disables automatic reconnecting to the server after a period of time
          *
-         * @param bool $automatic_reconnect
+         * @param bool $enable
          * @return void
          */
-        public function setAutomaticReconnect(bool $automatic_reconnect): void;
+        public function enableAutomaticReconnection(bool $enable): void;
 
         /**
          * Processes a task in the background (does not return a result)
@@ -83,10 +128,10 @@
          * Queues a closure to be processed in parallel (returns a result handled by a callback)
          *
          * @param Closure $closure The closure operation to perform (remote)
-         * @param Closure $callback The closure to call when the operation is complete (local)
+         * @param Closure|null $callback The closure to call when the operation is complete (local)
          * @return void
          */
-        public function queueClosure(Closure $closure, Closure $callback): void;
+        public function queueClosure(Closure $closure, ?Closure $callback=null): void;
 
         /**
          * Executes all tasks in the queue and waits for them to complete

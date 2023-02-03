@@ -119,7 +119,7 @@
         /**
          * @inheritDoc
          */
-        public function addOptions(array $options): bool
+        public function setOptions(array $options): bool
         {
             $this->options = $options;
             return true;
@@ -128,7 +128,7 @@
         /**
          * @inheritDoc
          */
-        public function isAutomaticReconnect(): bool
+        public function automaticReconnectionEnabled(): bool
         {
             return $this->automatic_reconnect;
         }
@@ -136,18 +136,18 @@
         /**
          * @inheritDoc
          */
-        public function setAutomaticReconnect(bool $automatic_reconnect): void
+        public function enableAutomaticReconnection(bool $enable): void
         {
-            $this->automatic_reconnect = $automatic_reconnect;
+            $this->automatic_reconnect = $enable;
         }
 
         /**
          * @inheritDoc
          */
-        public function addFunction(string $function_name, callable $function, mixed $context = null): void
+        public function addFunction(string $name, callable $callable, mixed $context = null): void
         {
-            $this->functions[$function_name] = [
-                'function' => $function,
+            $this->functions[$name] = [
+                'function' => $callable,
                 'context' => $context
             ];
         }
