@@ -2,11 +2,11 @@
 
     require 'ncc';
 
-use Tamer\Objects\Job;
+    use Tamer\Objects\Job;
 
-import('net.nosial.tamerlib', 'latest');
-    $worker = new \Tamer\Protocols\Gearman\Worker();
-    $worker->addServer();
+    import('net.nosial.tamerlib', 'latest');
+    $worker = new \Tamer\Protocols\RabbitMq\Worker('guest', 'guest');
+    $worker->addServer('127.0.0.1', 5672);
 
     $worker->addFunction('sleep', function($job) {
         /** @var Job $job */

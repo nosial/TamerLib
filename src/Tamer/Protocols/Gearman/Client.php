@@ -2,7 +2,7 @@
 
     /** @noinspection PhpMissingFieldTypeInspection */
 
-    namespace Tamer\Protocols;
+    namespace Tamer\Protocols\Gearman;
 
     use Closure;
     use Exception;
@@ -16,7 +16,7 @@
     use Tamer\Objects\JobResults;
     use Tamer\Objects\Task;
 
-    class GearmanClient implements ClientProtocolInterface
+    class Client implements ClientProtocolInterface
     {
         /**
          * @var \GearmanClient|null $client
@@ -46,8 +46,11 @@
         private $next_reconnect;
 
         /**
+         * @inheritDoc
+         * @param string|null $username
+         * @param string|null $password
          */
-        public function __construct()
+        public function __construct(?string $username=null, ?string $password=null)
         {
             $this->client = null;
             $this->tasks = [];
@@ -145,15 +148,15 @@
         /**
          * Executes a closure in the background
          *
-         * @param Closure $function
+         * @param Closure $closure
          * @return void
          * @throws ServerException
          */
-        public function closure(Closure $function): void
+        public function doClosure(Closure $closure): void
         {
-            $closure_task = new Task('tamer_closure', $function);
+            $closure_task = new Task('tamer_closure', $closure);
             $closure_task->setClosure(true);
-            $this->doBackground($closure_task);
+            $this->do($closure_task);
         }
 
         /**
@@ -163,7 +166,7 @@
          * @return void
          * @throws ServerException
          */
-        public function doBackground(Task $task): void
+        public function do(Task $task): void
         {
             if($this->automatic_reconnect && time() > $this->next_reconnect)
             {
@@ -199,7 +202,7 @@
          * @return void
          * @throws ServerException
          */
-        public function addTask(Task $task): void
+        public function queue(Task $task): void
         {
             if($this->automatic_reconnect && time() > $this->next_reconnect)
             {
@@ -230,16 +233,16 @@
         /**
          * Adds a closure task to the list of tasks to run
          *
-         * @param Closure $function
+         * @param Closure $closure
          * @param $callback
          * @return void
          * @throws ServerException
          */
-        public function addClosureTask(Closure $function, $callback): void
+        public function queueClosure(Closure $closure, $callback): void
         {
-            $closure_task = new Task('tamer_closure', $function, $callback);
+            $closure_task = new Task('tamer_closure', $closure, $callback);
             $closure_task->setClosure(true);
-            $this->addTask($closure_task);
+            $this->queue($closure_task);
         }
 
         /**

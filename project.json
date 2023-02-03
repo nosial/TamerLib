@@ -46,6 +46,12 @@
                 "version": "latest",
                 "source_type": "remote",
                 "source": "opis/closure=latest@composer"
+            },
+            {
+                "name": "com.php_amqplib.php_amqplib",
+                "version": "latest",
+                "source_type": "remote",
+                "source": "php-amqplib/php-amqplib=latest@composer"
             }
         ],
         "configurations": [

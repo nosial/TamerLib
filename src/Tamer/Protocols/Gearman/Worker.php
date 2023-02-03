@@ -2,7 +2,7 @@
 
     /** @noinspection PhpMissingFieldTypeInspection */
 
-    namespace Tamer\Protocols;
+    namespace Tamer\Protocols\Gearman;
 
     use Exception;
     use GearmanJob;
@@ -14,7 +14,7 @@
     use Tamer\Objects\Job;
     use Tamer\Objects\JobResults;
 
-    class GearmanWorker implements WorkerProtocolInterface
+    class Worker implements WorkerProtocolInterface
     {
         /**
          * @var \GearmanWorker|null
@@ -36,7 +36,7 @@
          */
         private $next_reconnect;
 
-        public function __construct()
+        public function __construct(?string $username=null, ?string $password=null)
         {
             $this->worker = null;
             $this->server_cache = [];
@@ -53,6 +53,25 @@
             }
         }
 
+        /**
+         * @param array $options
+         * @return bool
+         * @inheritDoc
+         */
+        public function addOptions(array $options): bool
+        {
+            if($this->worker == null)
+            {
+                return false;
+            }
+
+            $options = array_map(function($option)
+            {
+                return constant($option);
+            }, $options);
+
+            return $this->worker->addOptions(array_sum($options));
+        }
         /**
          * Adds a server to the list of servers to use
          *
@@ -91,18 +110,16 @@
          *
          * @link http://php.net/manual/en/gearmanworker.addservers.php
          * @param string[] $servers (host:port, host:port, ...)
-         * @return WorkerProtocolInterface
+         * @return void
          * @throws ServerException
          */
-        public function addServers(array $servers): self
+        public function addServers(array $servers): void
         {
             foreach($servers as $server)
             {
                 $server = explode(':', $server);
                 $this->addServer($server[0], $server[1]);
             }
-
-            return $this;
         }
 
 
@@ -113,9 +130,9 @@
          * @param string $function_name The name of the function to register with the job server
          * @param callable $function The callback function to call when the job is received
          * @param mixed|null $context (optional) The context to pass to the callback function
-         * @return WorkerProtocolInterface
+         * @return void
          */
-        public function addFunction(string $function_name, callable $function, mixed $context=null): self
+        public function addFunction(string $function_name, callable $function, mixed $context=null): void
         {
             $this->worker->addFunction($function_name, function(GearmanJob $job) use ($function, $context)
             {
@@ -135,19 +152,17 @@
                 $job->sendComplete(msgpack_pack($job_results->toArray()));
 
             });
-            return $this;
         }
 
         /**
          * Removes a function from the list of functions to call
          *
          * @param string $function_name The name of the function to unregister
-         * @return WorkerProtocolInterface
+         * @return void
          */
-        public function removeFunction(string $function_name): self
+        public function removeFunction(string $function_name): void
         {
             $this->worker->unregister($function_name);
-            return $this;
         }
 
         /**
@@ -160,12 +175,11 @@
 
         /**
          * @param bool $automatic_reconnect
-         * @return WorkerProtocolInterface
+         * @return void
          */
-        public function setAutomaticReconnect(bool $automatic_reconnect): self
+        public function setAutomaticReconnect(bool $automatic_reconnect): void
         {
             $this->automatic_reconnect = $automatic_reconnect;
-            return $this;
         }
 
         /**
@@ -211,7 +225,7 @@
          *
          * @link http://php.net/manual/en/gearmanworker.work.php
          * @param bool $blocking (default: true) Whether to block until a job is received
-         * @param int $timeout (default: 500) The timeout in milliseconds
+         * @param int $timeout (default: 500) The timeout in milliseconds (if $blocking is false)
          * @param bool $throw_errors (default: false) Whether to throw exceptions on errors
          * @return void Returns nothing
          * @throws ServerException If the worker cannot connect to the server
