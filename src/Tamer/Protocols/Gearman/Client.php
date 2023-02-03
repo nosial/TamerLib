@@ -9,7 +9,6 @@
     use GearmanClient;
     use GearmanTask;
     use LogLib\Log;
-    use ncc\Utilities\Console;
     use Tamer\Abstracts\TaskPriority;
     use Tamer\Exceptions\ConnectionException;
     use Tamer\Interfaces\ClientProtocolInterface;
@@ -184,7 +183,7 @@
          */
         public function reconnect(): void
         {
-            Console::outDebug('net.nosial.tamerlib', 'reconnecting to gearman server(s)');
+            Log::debug('net.nosial.tamerlib', 'reconnecting to gearman server(s)');
 
             $this->disconnect();
             $this->connect();
