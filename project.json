@@ -52,6 +52,12 @@
                 "version": "latest",
                 "source_type": "remote",
                 "source": "php-amqplib/php-amqplib=latest@composer"
+            },
+            {
+                "name": "com.symfony.process",
+                "version": "latest",
+                "source_type": "remote",
+                "source": "symfony/process=latest@composer"
             }
         ],
         "configurations": [

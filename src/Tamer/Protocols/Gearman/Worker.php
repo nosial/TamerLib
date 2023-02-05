@@ -102,7 +102,7 @@
             foreach($servers as $server)
             {
                 $server = explode(':', $server);
-                $this->addServer($server[0], $server[1]);
+                $this->addServer($server[0], (int)$server[1]);
             }
         }
 
@@ -119,8 +119,6 @@
 
             $this->worker = new GearmanWorker();
             $this->worker->addOptions(GEARMAN_WORKER_GRAB_UNIQ);
-
-            Log::debug('net.nosial.tamerlib', 'connecting to gearman server(s)');
 
             foreach($this->defined_servers as $host => $ports)
             {

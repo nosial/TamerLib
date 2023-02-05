@@ -112,7 +112,7 @@
             foreach($servers as $server)
             {
                 $server = explode(':', $server);
-                $this->addServer($server[0], $server[1]);
+                $this->addServer($server[0], (int)$server[1]);
             }
         }
 
@@ -359,9 +359,7 @@
             $this->preformAutoreconf();
 
             if(!$this->client->runTasks())
-            {
                 return false;
-            }
 
             return true;
         }
@@ -456,15 +454,11 @@
         {
             try
             {
-                $this->run();
+                $this->disconnect();
             }
             catch(Exception $e)
             {
                 unset($e);
-            }
-            finally
-            {
-                $this->disconnect();
             }
         }
     }

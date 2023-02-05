@@ -5,11 +5,14 @@
     namespace Tamer;
 
     use Closure;
+    use Exception;
     use InvalidArgumentException;
     use Tamer\Abstracts\Mode;
     use Tamer\Classes\Functions;
+    use Tamer\Classes\Supervisor;
     use Tamer\Classes\Validate;
     use Tamer\Exceptions\ConnectionException;
+    use Tamer\Exceptions\UnsupervisedWorkerException;
     use Tamer\Interfaces\ClientProtocolInterface;
     use Tamer\Interfaces\WorkerProtocolInterface;
     use Tamer\Objects\Task;
@@ -53,17 +56,23 @@
         private static $connected;
 
         /**
-         * Connects to a server using the specified protocol and mode (client or worker)
+         * The supervisor that is supervising the workers
+         *
+         * @var Supervisor
+         */
+        private static $supervisor;
+
+        /**
+         * Initializes Tamer as a client and connects to the server
          *
          * @param string $protocol
-         * @param string $mode
          * @param array $servers
          * @param string|null $username
          * @param string|null $password
          * @return void
          * @throws ConnectionException
          */
-        public static function connect(string $protocol, string $mode, array $servers, ?string $username=null, ?string $password=null): void
+        public static function init(string $protocol, array $servers, ?string $username=null, ?string $password=null): void
         {
             if(self::$connected)
             {
@@ -75,31 +84,39 @@
                 throw new InvalidArgumentException(sprintf('Invalid protocol type: %s', $protocol));
             }
 
-            if (!Validate::mode($mode))
-            {
-                throw new InvalidArgumentException(sprintf('Invalid mode: %s', $mode));
-            }
-
             self::$protocol = $protocol;
-            self::$mode = $mode;
+            self::$mode = Mode::Client;
+            self::$client = Functions::createClient($protocol, $username, $password);
+            self::$client->addServers($servers);
+            self::$client->connect();
+            self::$supervisor = new Supervisor($protocol, $servers, $username, $password);
+            self::$connected = true;
+        }
 
-            if (self::$mode === Mode::Client)
+        /**
+         * Initializes Tamer as a worker client and connects to the server
+         *
+         * @return void
+         * @throws ConnectionException
+         * @throws UnsupervisedWorkerException
+         */
+        public static function initWorker(): void
+        {
+            if(self::$connected)
             {
-                self::$client = Functions::createClient($protocol, $username, $password);
-                self::$client->addServers($servers);
-                self::$client->connect();
-            }
-            elseif(self::$mode === Mode::Worker)
-            {
-                self::$worker = Functions::createWorker($protocol, $username, $password);
-                self::$worker->addServers($servers);
-                self::$worker->connect();
-            }
-            else
-            {
-                throw new InvalidArgumentException(sprintf('Invalid mode: %s', $mode));
+                throw new ConnectionException('Tamer is already connected to the server');
             }
 
+            if(!Functions::getWorkerVariables()['TAMER_ENABLED'])
+            {
+                throw new UnsupervisedWorkerException('Tamer is not enabled for this worker');
+            }
+
+            self::$protocol = Functions::getWorkerVariables()['TAMER_PROTOCOL'];
+            self::$mode = Mode::Worker;
+            self::$worker = Functions::createWorker(self::$protocol);
+            self::$worker->addServers(Functions::getWorkerVariables()['TAMER_SERVERS']);
+            self::$worker->connect();
             self::$connected = true;
         }
 
@@ -291,6 +308,80 @@
             else
             {
                 throw new InvalidArgumentException('Tamer is not running in worker mode');
+            }
+        }
+
+        /**
+         * Adds a worker to the supervisor
+         *
+         * @param string $target
+         * @param int $instances
+         * @return void
+         * @throws Exception
+         */
+        public static function addWorker(string $target, int $instances): void
+        {
+            if (self::$mode === Mode::Client)
+            {
+                self::$supervisor->addWorker($target, $instances);
+            }
+            else
+            {
+                throw new InvalidArgumentException('Tamer is not running in client mode');
+            }
+        }
+
+        /**
+         * Starts all workers
+         *
+         * @return void
+         * @throws Exception
+         */
+        public static function startWorkers(): void
+        {
+            if (self::$mode === Mode::Client)
+            {
+                self::$supervisor->start();
+            }
+            else
+            {
+                throw new InvalidArgumentException('Tamer is not running in client mode');
+            }
+        }
+
+        /**
+         * Stops all workers
+         *
+         * @return void
+         * @throws Exception
+         */
+        public static function stopWorkers(): void
+        {
+            if (self::$mode === Mode::Client)
+            {
+                self::$supervisor->stop();
+            }
+            else
+            {
+                throw new InvalidArgumentException('Tamer is not running in client mode');
+            }
+        }
+
+        /**
+         * Restarts all workers
+         *
+         * @return void
+         * @throws Exception
+         */
+        public static function restartWorkers(): void
+        {
+            if (self::$mode === Mode::Client)
+            {
+                self::$supervisor->restart();
+            }
+            else
+            {
+                throw new InvalidArgumentException('Tamer is not running in client mode');
             }
         }
 

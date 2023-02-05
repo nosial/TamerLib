@@ -8,9 +8,7 @@
 
     import('net.nosial.tamerlib', 'latest');
 
-    Tamer::connect(ProtocolType::Gearman, Mode::Worker,
-        ['127.0.0.1:4730']
-    );
+    Tamer::initWorker();
 
     Tamer::addFunction('sleep', function(\Tamer\Objects\Job $job) {
         sleep($job->getData());
