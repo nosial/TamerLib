@@ -1,0 +1,16 @@
+<?php
+
+    require 'ncc';
+    import('net.nosial.tamerlib', 'latest');
+
+    \TamerLib\Tamer::initWorker();
+
+    try
+    {
+        \TamerLib\Tamer::work();
+    }
+    catch(\Exception $e)
+    {
+        \LogLib\Log::error('net.nosial.tamerlib', $e->getMessage(), $e);
+        exit(1);
+    }

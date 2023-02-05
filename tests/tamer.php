@@ -1,8 +1,8 @@
 <?php
 
 
-    use Tamer\Abstracts\ProtocolType;
-    use Tamer\Tamer;
+    use TamerLib\Abstracts\ProtocolType;
+    use TamerLib\Tamer;
 
     require 'ncc';
 

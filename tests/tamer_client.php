@@ -1,9 +1,9 @@
 <?php
 
-    use Tamer\Abstracts\ProtocolType;
-    use Tamer\Objects\JobResults;
-    use Tamer\Objects\Task;
-    use Tamer\Tamer;
+    use TamerLib\Abstracts\ProtocolType;
+    use TamerLib\Objects\JobResults;
+    use TamerLib\Objects\Task;
+    use TamerLib\Tamer;
 
     require 'ncc';
 

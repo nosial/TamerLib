@@ -1,8 +1,8 @@
 <?php
 
-    use Tamer\Abstracts\Mode;
-    use Tamer\Abstracts\ProtocolType;
-    use Tamer\Tamer;
+    use TamerLib\Abstracts\Mode;
+    use TamerLib\Abstracts\ProtocolType;
+    use TamerLib\Tamer;
 
     require 'ncc';
 
@@ -10,7 +10,7 @@
 
     Tamer::initWorker();
 
-    Tamer::addFunction('sleep', function(\Tamer\Objects\Job $job) {
+    Tamer::addFunction('sleep', function(\TamerLib\Objects\Job $job) {
         sleep($job->getData());
         return $job->getData();
     });
