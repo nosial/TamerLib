@@ -2,24 +2,50 @@
 
 Coming soon...
 
-## Terminology
+## Table of Contents
 
-### Components
+<!-- TOC -->
+* [TamerLib](#tamerlib)
+  * [Table of Contents](#table-of-contents)
+* [Usage](#usage)
+  * [Client Usage](#client-usage)
+  * [Initialization](#initialization)
+  * [Supported Protocols](#supported-protocols)
+* [License](#license)
+<!-- TOC -->
 
- - **Supervisor** - The main component of the library, this is the component that is responsible for manging
-                    workers
- - **Worker** - The component that is responsible for executing tasks
- - **Task** - The component that is responsible for executing a function or closure
+# Usage
 
-### Function Names
- - **do** - Execute a function in the background without blocking the current thread,
-            this does not return a value. (This is a fire and forget function)
- - **doClosure** - Execute a closure in the background without blocking the current thread,
-                   this does not return a value. (This is a fire and forget function) 
- - **queue** - Queues a function to be executed in the background until the next time the run function is called.
- - **queueClosure** - Queues a closure to be executed in th background until the next time the run function is called.
- - **run** - Executes all queued functions and closures in parallel and waits for the tasks to complete.
+Tamer is designed to be simple to use while eliminating the need to write boilerplate code for
+common tasks, Tamer can only run as a client or worker on a process, so if you want to run both
+you must run two separate processes (but this is also handled by Tamer's builtin supervisor).
 
+The approach Tamer takes is to be out of the way, and to allow you to focus on the code that matters,
+Tamer will handle the rest even the difficulty of having to use or implement different protocols.
+
+## Client Usage
+
+Using Tamer as a client allows you to send jobs & closures to workers defined by your client,
+and receive the results of those jobs.
+
+## Initialization
+
+To use the client, you must first create a connection to the server by running `TamerLib\Tamer::init(string $protocol, array $servers)`
+where `$protocol` is the protocol to use (see [Supported Protocols](#supported-protocols)) and `$servers` is an array of 
+servers to connect to (eg. `['host:port', 'host:port']`)
+
+```php
+TamerLib\Tamer::init(\TamerLib\Abstracts\ProtocolType::Gearman, [
+    'host:port', 'host:port'
+], $password, $username);
+```
+
+
+## Supported Protocols
+
+ * [x] Gearman
+ * [x] RabbitMQ
+ * [ ] Redis
 
 # License
 
