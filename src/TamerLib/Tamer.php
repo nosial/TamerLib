@@ -312,6 +312,25 @@
         }
 
         /**
+         * Monitors the workers and restarts them if they die unexpectedly (monitor mode only)
+         *
+         * @param bool $auto_restart
+         * @return void
+         * @throws Exception
+         */
+        public static function monitor(bool $auto_restart=false): void
+        {
+            if (self::$mode === Mode::Client)
+            {
+                self::$supervisor->monitor($auto_restart);
+            }
+            else
+            {
+                throw new InvalidArgumentException('Tamer is not running in client mode');
+            }
+        }
+
+        /**
          * Adds a worker to the supervisor
          *
          * @param string $target
