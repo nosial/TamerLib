@@ -7,9 +7,9 @@
     use OptsLib\Parse;
     use Symfony\Component\Process\PhpExecutableFinder;
     use TamerLib\Abstracts\ProtocolType;
+    use TamerLib\Abstracts\TaskPriority;
     use TamerLib\Interfaces\ClientProtocolInterface;
     use TamerLib\Interfaces\WorkerProtocolInterface;
-
     class Functions
     {
         /**
@@ -126,5 +126,22 @@
 
             self::$php_bin = $php_bin;
             return $php_bin;
+        }
+
+        /**
+         * Calculates the priority for a task based on the priority level
+         *
+         * @param int $priority
+         * @return int
+         */
+        public static function calculatePriority(int $priority): int
+        {
+            if($priority < TaskPriority::Low)
+                return 0;
+
+            if($priority > TaskPriority::High)
+                return 255;
+
+            return (int) round(($priority / TaskPriority::High) * 255);
         }
     }
