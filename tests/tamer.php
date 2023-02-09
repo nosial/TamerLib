@@ -10,6 +10,7 @@
 
     Tamer::init(ProtocolType::Gearman,
         ['127.0.0.1:4730']
+        //['127.0.0.1:5672'], 'guest', 'guest'
     );
 
     $instances = 10;
