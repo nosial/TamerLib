@@ -2,7 +2,7 @@
 
     namespace TamerLib\Abstracts\ExitCodes;
 
-    class WorkerExitCodes
+    abstract class WorkerExitCodes
     {
         const GracefulShutdown = 0;
 
