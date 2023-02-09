@@ -7,7 +7,9 @@
     use Closure;
     use Exception;
     use PhpAmqpLib\Message\AMQPMessage;
+    use TamerLib\Abstracts\ObjectType;
     use TamerLib\Classes\Functions;
+    use TamerLib\Classes\Validate;
     use TamerLib\Exceptions\ConnectionException;
     use TamerLib\Interfaces\ClientProtocolInterface;
     use TamerLib\Objects\Job;
@@ -326,6 +328,7 @@
             $this->preformAutoreconf();
             $correlationIds = [];
             $connection =  $this->connections[array_rand($this->connections)];
+
             if($this->automatic_reconnect)
                 $connection->preformAutoreconf();
 
@@ -348,12 +351,32 @@
             // Register callback for each task
             $callback = function($msg) use (&$correlationIds, $connection)
             {
+                var_dump(Validate::getObjectType(msgpack_unpack($msg->body)));
+                if(Validate::getObjectType(msgpack_unpack($msg->body)) !== ObjectType::JobResults)
+                {
+                    $connection->getChannel()->basic_nack($msg->delivery_info['delivery_tag'], false, true);
+                    return;
+                }
+
                 $job_result = JobResults::fromArray(msgpack_unpack($msg->body));
                 $task = $this->getTaskById($job_result->getId());
 
+                if($task == null)
+                {
+                    $connection->getChannel()->basic_nack($msg->delivery_info['delivery_tag'], false, true);
+                    return;
+                }
+
                 try
                 {
-                    $task->runCallback($job_result);
+                    if($task->isClosure())
+                    {
+                        $task->runCallback($job_result->getData());
+                    }
+                    else
+                    {
+                        $task->runCallback($job_result);
+                    }
                 }
                 catch(Exception $e)
                 {

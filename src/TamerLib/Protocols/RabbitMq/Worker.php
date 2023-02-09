@@ -8,6 +8,8 @@
     use LogLib\Log;
     use PhpAmqpLib\Message\AMQPMessage;
     use TamerLib\Abstracts\JobStatus;
+    use TamerLib\Abstracts\ObjectType;
+    use TamerLib\Classes\Validate;
     use TamerLib\Exceptions\ConnectionException;
     use TamerLib\Interfaces\WorkerProtocolInterface;
     use TamerLib\Objects\Job;
@@ -69,6 +71,7 @@
         public function __construct(?string $username = null, ?string $password = null)
         {
             $this->defined_servers = [];
+            $this->connections = [];
             $this->functions = [];
             $this->automatic_reconnect = true;
             $this->username = $username;
@@ -282,10 +285,17 @@
                 return;
 
             // Select a random connection
-            $connection =  $this->connections[array_rand($this->connections)];
+            $connection = $this->connections[array_rand($this->connections)];
 
             $callback = function($message) use ($throw_errors, $connection)
             {
+                var_dump(Validate::getObjectType(msgpack_unpack($message->body)));
+                if(Validate::getObjectType(msgpack_unpack($message->body)) !== ObjectType::Job)
+                {
+                    $connection->getChannel()->basic_nack($message->delivery_info['delivery_tag']);
+                    return;
+                }
+
                 $received_job = Job::fromArray(msgpack_unpack($message->body));
 
                 if($received_job->isClosure())
@@ -364,6 +374,7 @@
                     {
                         break;
                     }
+
                     $connection->getChannel()->wait();
                 }
             }

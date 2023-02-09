@@ -78,6 +78,7 @@
         public function toArray(): array
         {
             return [
+                'type' => 'tamer_job_results',
                 'id' => $this->id,
                 'data' => $this->data,
                 'status' => $this->status

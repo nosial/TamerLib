@@ -92,6 +92,7 @@
         public function toArray(): array
         {
             return [
+                'type' => 'tamer_job',
                 'id' => $this->id,
                 'name' => $this->name,
                 'data' => ($this->closure ? serialize(new SerializableClosure($this->data)) : $this->data),

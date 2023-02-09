@@ -44,7 +44,7 @@ TamerLib\Tamer::init(\TamerLib\Abstracts\ProtocolType::Gearman, [
 ## Supported Protocols
 
  * [x] Gearman
- * [x] RabbitMQ
+ * [ ] RabbitMQ (Work in progress)
  * [ ] Redis
 
 # License
