@@ -3,6 +3,7 @@
     namespace TamerLib\Classes;
 
     use TamerLib\Abstracts\Mode;
+    use TamerLib\Abstracts\ObjectType;
     use TamerLib\Abstracts\ProtocolType;
     use TamerLib\Abstracts\TaskPriority;
 
@@ -48,6 +49,33 @@
             {
                 TaskPriority::Low, TaskPriority::Normal, TaskPriority::High => true,
                 default => false,
+            };
+        }
+
+
+        /**
+         * Determines the object type
+         *
+         * @param $input
+         * @return string
+         */
+        public static function getObjectType($input): string
+        {
+            if(!is_array($input))
+            {
+                return ObjectType::Unknown;
+            }
+
+            if(!array_key_exists('type', $input))
+            {
+                return ObjectType::Unknown;
+            }
+
+            return match ($input['type'])
+            {
+                ObjectType::Job => ObjectType::Job,
+                ObjectType::JobResults => ObjectType::JobResults,
+                default => ObjectType::Unknown,
             };
         }
     }
