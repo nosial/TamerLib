@@ -1,5 +1,7 @@
 <?php
 
+    /** @noinspection PhpMissingFieldTypeInspection */
+
     namespace TamerLib\Classes;
 
     use Exception;
@@ -61,7 +63,7 @@
             return match (strtolower($protocol))
             {
                 ProtocolType::Gearman => new \TamerLib\Protocols\Gearman\Client($username, $password),
-                ProtocolType::RabbitMQ => new \TamerLib\Protocols\RabbitMq\Client($username, $password),
+                ProtocolType::RabbitMQ => throw new InvalidArgumentException('RabbitMQ is not fully implemented yet'),
                 default => throw new InvalidArgumentException('Invalid protocol type'),
             };
         }
@@ -78,7 +80,7 @@
             return match (strtolower($protocol))
             {
                 ProtocolType::Gearman => new \TamerLib\Protocols\Gearman\Worker($username, $password),
-                ProtocolType::RabbitMQ => new \TamerLib\Protocols\RabbitMq\Worker($username, $password),
+                ProtocolType::RabbitMQ => throw new InvalidArgumentException('RabbitMQ is not fully implemented yet'),
                 default => throw new InvalidArgumentException('Invalid protocol type'),
             };
         }
