@@ -8,7 +8,7 @@
 
     import('net.nosial.tamerlib', 'latest');
 
-    Tamer::init(ProtocolType::RabbitMQ,
+    Tamer::init(ProtocolType::Gearman,
         ['127.0.0.1:4730']
         //['127.0.0.1:5672'], 'guest', 'guest'
     );
