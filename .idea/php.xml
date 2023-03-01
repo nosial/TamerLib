@@ -14,7 +14,7 @@
       <path value="/usr/share/php" />
       <path value="/etc/ncc" />
       <path value="/var/ncc/packages/net.nosial.optslib=1.0.0" />
-      <path value="/var/ncc/packages/net.nosial.loglib=1.0.0" />
+      <path value="/var/ncc/packages/net.nosial.loglib=1.0.1" />
       <path value="/var/ncc/packages/com.phpseclib.phpseclib=3.0.18" />
       <path value="/var/ncc/packages/com.php_amqplib.php_amqplib=3.5.1" />
       <path value="/var/ncc/packages/com.paragonie.random_compat=9.99.100" />
