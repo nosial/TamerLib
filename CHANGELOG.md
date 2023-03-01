@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2022-02-28
 
+### Added
+
  - Added more logging calls for Gearman Client
 
 
