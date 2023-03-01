@@ -314,15 +314,16 @@
         /**
          * Monitors the workers and restarts them if they die unexpectedly (monitor mode only)
          *
+         * @param bool $blocking
          * @param bool $auto_restart
          * @return void
          * @throws Exception
          */
-        public static function monitor(bool $auto_restart=false): void
+        public static function monitor(bool $blocking=false, bool $auto_restart=true): void
         {
             if (self::$mode === Mode::Client)
             {
-                self::$supervisor->monitor($auto_restart);
+                self::$supervisor->monitor($blocking, $auto_restart);
             }
             else
             {

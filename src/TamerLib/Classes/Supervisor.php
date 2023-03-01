@@ -148,13 +148,14 @@
         /**
          * Monitors all the workers and restarts them if they are not running
          *
+         * @param bool $blocking
          * @param bool $auto_restart
          * @return void
          * @throws Exception
          */
-        public function monitor(bool $auto_restart = true): void
+        public function monitor(bool $blocking=false, bool $auto_restart=true): void
         {
-            while (true)
+            while(true)
             {
                 /** @var WorkerInstance $worker */
                 foreach ($this->workers as $worker)
@@ -163,6 +164,7 @@
                     {
                         if ($auto_restart)
                         {
+                            Log::warning('net.nosial.tamerlib', "worker {$worker->getId()} is not running, restarting");
                             $worker->start();
                         }
                         else
@@ -170,6 +172,11 @@
                             throw new Exception("Worker {$worker->getId()} is not running");
                         }
                     }
+                }
+
+                if (!$blocking)
+                {
+                    break;
                 }
 
                 sleep(1);
