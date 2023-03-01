@@ -286,20 +286,22 @@
 
             $this->tasks[] = $task;
             $job = new Job($task);
+            $job_data = msgpack_pack($job->toArray());
 
+            Log::debug('net.nosial.tamerlib', 'sending closure to gearman server: ' . strlen($job_data) . ' bytes');
             switch($task->getPriority())
             {
                 case TaskPriority::High:
-                    $this->client->doHighBackground($task->getFunctionName(),  msgpack_pack($job->toArray()));
+                    $this->client->doHighBackground($task->getFunctionName(),  $job_data);
                     break;
 
                 case TaskPriority::Low:
-                    $this->client->doLowBackground($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    $this->client->doLowBackground($task->getFunctionName(), $job_data);
                     break;
 
                 default:
                 case TaskPriority::Normal:
-                    $this->client->doBackground($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    $this->client->doBackground($task->getFunctionName(), $job_data);
                     break;
             }
         }
@@ -316,20 +318,22 @@
 
             $this->tasks[] = $task;
             $job = new Job($task);
+            $job_data = msgpack_pack($job->toArray());
 
+            Log::debug('net.nosial.tamerlib', 'sending closure to gearman server: ' . strlen($job_data) . ' bytes');
             switch($task->getPriority())
             {
                 case TaskPriority::High:
-                    $this->client->addTaskHigh($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    $this->client->addTaskHigh($task->getFunctionName(), $job_data);
                     break;
 
                 case TaskPriority::Low:
-                    $this->client->addTaskLow($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    $this->client->addTaskLow($task->getFunctionName(), $job_data);
                     break;
 
                 default:
                 case TaskPriority::Normal:
-                    $this->client->addTask($task->getFunctionName(), msgpack_pack($job->toArray()));
+                    $this->client->addTask($task->getFunctionName(), $job_data);
                     break;
             }
         }
