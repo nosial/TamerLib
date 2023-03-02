@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
  - Added non-blocking mode for supervisor
+ - Updated `\TamerLib\Classes > Supervisor > start()` to show the error output if possible
 
 ## [1.0.1] - 2022-02-28
 

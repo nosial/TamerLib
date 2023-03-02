@@ -165,6 +165,16 @@
                         if ($auto_restart)
                         {
                             Log::warning('net.nosial.tamerlib', "worker {$worker->getId()} is not running, restarting");
+
+                            try
+                            {
+                                Log::error('net.nosial.tamerlib', $worker->getProcess()->getErrorOutput());
+                            }
+                            catch(Exception $e)
+                            {
+                                unset($e);
+                            }
+
                             $worker->start();
                         }
                         else
