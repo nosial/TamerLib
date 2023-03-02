@@ -288,7 +288,7 @@
             $job = new Job($task);
             $job_data = msgpack_pack($job->toArray());
 
-            Log::debug('net.nosial.tamerlib', 'sending closure to gearman server: ' . strlen($job_data) . ' bytes');
+            Log::debug('net.nosial.tamerlib', 'sending task to gearman server: ' . strlen($job_data) . ' bytes');
             switch($task->getPriority())
             {
                 case TaskPriority::High:
