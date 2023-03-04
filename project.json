@@ -22,7 +22,7 @@
         "description": "TamerLib allows the execution of parallel tasks",
         "company": "Nosial",
         "copyright": "Copyright (c) 2022-2023 Nosial, All Rights Reserved",
-        "version": "1.0.2",
+        "version": "1.1.0",
         "uuid": "a365e7d6-a1c0-11ed-b7c7-b9654ed9efa5"
     },
     "build": {
