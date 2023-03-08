@@ -8,6 +8,7 @@
     use Exception;
     use InvalidArgumentException;
     use TamerLib\Abstracts\Mode;
+    use TamerLib\Classes\Configuration;
     use TamerLib\Classes\Functions;
     use TamerLib\Classes\Supervisor;
     use TamerLib\Classes\Validate;
@@ -65,31 +66,39 @@
         /**
          * Initializes Tamer as a client and connects to the server
          *
-         * @param string $protocol
-         * @param array $servers
-         * @param string|null $username
-         * @param string|null $password
+         * @deprecated @param string $protocol
+         * @deprecated @param array $servers
+         * @deprecated @param string|null $username
+         * @deprecated @param string|null $password
          * @return void
          * @throws ConnectionException
          */
-        public static function init(string $protocol, array $servers, ?string $username=null, ?string $password=null): void
+        public static function init(): void
         {
             if(self::$connected)
             {
                 throw new ConnectionException('Tamer is already connected to the server');
             }
 
-            if (!Validate::protocolType($protocol))
+            $configuration = Configuration::getConfiguration();
+
+            if (!Validate::protocolType($configuration['protocol']))
             {
-                throw new InvalidArgumentException(sprintf('Invalid protocol type: %s', $protocol));
+                throw new InvalidArgumentException(sprintf('Invalid protocol type: %s', $configuration['protocol']));
             }
 
-            self::$protocol = $protocol;
+            self::$protocol = $configuration['protocol'];
             self::$mode = Mode::Client;
-            self::$client = Functions::createClient($protocol, $username, $password);
-            self::$client->addServers($servers);
+            self::$client = Functions::createClient(
+                $configuration['protocol'],
+                $configuration['username'], $configuration['password']
+            );
+            self::$client->addServers($configuration['servers']);
             self::$client->connect();
-            self::$supervisor = new Supervisor($protocol, $servers, $username, $password);
+            self::$supervisor = new Supervisor(
+                $configuration['protocol'], $configuration['servers'],
+                $configuration['username'], $configuration['password']
+            );
             self::$connected = true;
         }
 
@@ -151,6 +160,7 @@
          *
          * @return void
          * @throws ConnectionException
+         * @noinspection PhpUnused
          */
         public static function reconnect(): void
         {
@@ -187,6 +197,7 @@
          *
          * @param Closure $closure The closure operation to perform (remote)
          * @return void
+         * @noinspection PhpUnused
          */
         public static function doClosure(Closure $closure): void
         {
@@ -278,6 +289,7 @@
          *
          * @param string $function_name The name of the function to remove
          * @return void
+         * @noinspection PhpUnused
          */
         public static function removeFunction(string $function_name): void
         {
@@ -318,6 +330,7 @@
          * @param bool $auto_restart
          * @return void
          * @throws Exception
+         * @noinspection PhpUnused
          */
         public static function monitor(bool $blocking=false, bool $auto_restart=true): void
         {
@@ -374,6 +387,7 @@
          *
          * @return void
          * @throws Exception
+         * @noinspection PhpUnused
          */
         public static function stopWorkers(): void
         {
@@ -392,6 +406,7 @@
          *
          * @return void
          * @throws Exception
+         * @noinspection PhpUnused
          */
         public static function restartWorkers(): void
         {
@@ -407,6 +422,7 @@
 
         /**
          * @return string
+         * @noinspection PhpUnused
          */
         public static function getProtocol(): string
         {
@@ -415,6 +431,7 @@
 
         /**
          * @return ClientProtocolInterface|null
+         * @noinspection PhpUnused
          */
         public static function getClient(): ?ClientProtocolInterface
         {
@@ -423,6 +440,7 @@
 
         /**
          * @return WorkerProtocolInterface|null
+         * @noinspection PhpUnused
          */
         public static function getWorker(): ?WorkerProtocolInterface
         {
@@ -431,6 +449,7 @@
 
         /**
          * @return string
+         * @noinspection PhpUnused
          */
         public static function getMode(): string
         {
