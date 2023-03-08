@@ -7,4 +7,6 @@
         const Client = 'client';
 
         const Worker = 'worker';
+
+        const None = 'none';
     }
