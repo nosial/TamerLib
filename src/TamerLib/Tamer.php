@@ -44,7 +44,7 @@
         /**
          * Indicates if Tamer is running as a client or worker
          *
-         * @var string
+         * @var string|null
          * @see Mode
          */
         private static $mode;
@@ -448,15 +448,22 @@
         }
 
         /**
+         * Returns the current mode of TamerLib
+         *
          * @return string
          * @noinspection PhpUnused
          */
         public static function getMode(): string
         {
+            if(self::$mode == null)
+                return Mode::None;
+
             return self::$mode;
         }
 
         /**
+         * Returns True  if the client is connected to the server
+         *
          * @return bool
          */
         public static function isConnected(): bool
